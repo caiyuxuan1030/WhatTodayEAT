@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>吃什么转盘</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #fff9ec;
+      text-align: center;
+      padding-top: 40px;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: 90vw;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    #pointer {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 30px solid black;
+      z-index: 10;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    #controls {
+      margin-top: 20px;
+    }
+
+    #foodInput {
+      padding: 8px;
+      font-size: 16px;
+      width: 60%;
+      max-width: 200px;
+    }
+
+    #addBtn {
+      padding: 8px 12px;
+      font-size: 16px;
+      margin-left: 10px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #foodList {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .food-item {
+      background: #f4f4f4;
+      padding: 6px 10px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .food-item button {
+      margin-left: 6px;
+      background: #e74c3c;
+      border: none;
+      color: white;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    #spinBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #008cba;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 30px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #d43f3a;
+    }
+  </style>
+</head>
+<body>
+  <h1>今天吃什么？ 🎯</h1>
+  <div class="wheel-container">
+    <div id="pointer"></div>
+    <canvas id="wheel" width="400" height="400"></canvas>
+  </div>
+
+  <div id="controls">
+    <input type="text" id="foodInput" placeholder="添加食物..." />
+    <button id="addBtn">添加</button>
+
+    <div id="foodList"></div>
+  </div>
+
+  <button id="spinBtn">点击转动</button>
+  <div id="result"></div>
+
+  <script>
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 180;
+
+    let angle = 0;
+    let foods = ["东苑1楼", "东苑3楼", "芙蓉1楼", "芙蓉2楼", "南光", "叁十", "枝稻", "烧腊", "九仙湖"];
+    const candyColors = [
+      "#FFB6C1", "#FFD700", "#90EE90", "#87CEFA",
+      "#FF69B4", "#FFA07A", "#E0FFFF", "#DA70D6",
+      "#FF7F50", "#98FB98", "#AFEEEE", "#FF6347"
+    ];
+
+    function drawWheel() {
+      const segmentAngle = 2 * Math.PI / foods.length;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < foods.length; i++) {
+        let start = i * segmentAngle + angle;
+        let end = start + segmentAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = candyColors[i % candyColors.length];
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(start + segmentAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#333";
+        ctx.font = "16px sans-serif";
+        ctx.fillText(foods[i], radius - 10, 6);
+        ctx.restore();
+      }
+    }
+
+    function rotateWheel() {
+      if (foods.length < 2) {
+        alert("请至少添加两个食物！");
+        return;
+      }
+
+      let totalRotation = Math.random() * 360 + 1440;
+      let current = 0;
+      const duration = 3000;
+      const fps = 60;
+      const increment = totalRotation / (duration / (1000 / fps));
+
+      const interval = setInterval(() => {
+        current += increment;
+        angle = (current * Math.PI / 180) % (2 * Math.PI);
+        drawWheel();
+
+        if (current >= totalRotation) {
+          clearInterval(interval);
+        }
+      }, 1000 / fps);
+    }
+
+    function updateFoodList() {
+      const listDiv = document.getElementById("foodList");
+      listDiv.innerHTML = "";
+      foods.forEach((food, index) => {
+        const item = document.createElement("div");
+        item.className = "food-item";
+        item.innerHTML = `${food} <button onclick="removeFood(${index})">×</button>`;
+        listDiv.appendChild(item);
+      });
+    }
+
+    function removeFood(index) {
+      foods.splice(index, 1);
+      updateFoodList();
+      drawWheel();
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      const input = document.getElementById("foodInput");
+      const newFood = input.value.trim();
+      if (newFood && !foods.includes(newFood)) {
+        foods.push(newFood);
+        input.value = "";
+        updateFoodList();
+        drawWheel();
+      } else if (foods.includes(newFood)) {
+        alert("该食物已经存在！");
+      }
+    });
+
+    document.getElementById("spinBtn").addEventListener("click", rotateWheel);
+
+    // 初始化
+    updateFoodList();
+    drawWheel();
+  </script>
+</body>
+</html>
